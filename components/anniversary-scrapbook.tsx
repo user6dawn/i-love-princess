@@ -22,24 +22,105 @@ import { Card } from "@/components/ui/card"
 export function AnniversaryScrapbook() {
   const [rizzScore, setRizzScore] = useState(0)
   const rizzMeterRef = useRef<HTMLDivElement>(null)
+  const audioRef = useRef<HTMLAudioElement>(null)
   const { scrollYProgress } = useScroll()
 
   // Rizz meter calculation based on scroll progress
   useEffect(() => {
-    return scrollYProgress.onChange((latest) => {
+    return scrollYProgress.on("change", (latest) => {
       // Scale from 0 to 100, then "break" at the end
       const score = Math.min(Math.floor(latest * 120), 100)
       setRizzScore(score)
     })
   }, [scrollYProgress])
 
+  // Play background audio on load and ensure continuous looping
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    // Set volume to a comfortable background level
+    audio.volume = 0.5
+    
+    // Ensure looping is enabled
+    audio.loop = true
+    
+    let hasStarted = false
+    
+    // Function to start audio playback
+    const startAudio = async () => {
+      if (hasStarted || audio.paused === false) return
+      
+      try {
+        await audio.play()
+        hasStarted = true
+      } catch (error: any) {
+        // Silently handle autoplay errors - we'll start on user interaction
+        if (error.name !== "NotAllowedError") {
+          console.log("Audio play failed:", error)
+        }
+      }
+    }
+    
+    // Wait for audio to be ready
+    const handleCanPlay = () => {
+      if (!hasStarted) {
+        startAudio()
+      }
+    }
+    
+    // Load audio and try to play if ready
+    if (audio.readyState >= 2) {
+      startAudio()
+    } else {
+      audio.addEventListener("canplay", handleCanPlay, { once: true })
+      audio.addEventListener("loadeddata", handleCanPlay, { once: true })
+      audio.load() // Ensure audio starts loading
+    }
+    
+    // Start audio on first user interaction (workaround for autoplay policies)
+    const handleUserInteraction = () => {
+      if (!hasStarted) {
+        startAudio()
+      }
+    }
+    
+    // Add multiple interaction listeners to catch any user action
+    const events = ["click", "touchstart", "keydown", "scroll", "mousedown"]
+    events.forEach((event) => {
+      document.addEventListener(event, handleUserInteraction, { once: true, passive: true })
+    })
+    
+    // Fallback: restart if it somehow ends (though loop should handle it)
+    const handleEnded = () => {
+      audio.currentTime = 0
+      audio.play().catch(() => {
+        // Ignore errors on restart
+      })
+    }
+    
+    audio.addEventListener("ended", handleEnded)
+    
+    return () => {
+      audio.removeEventListener("canplay", handleCanPlay)
+      audio.removeEventListener("loadeddata", handleCanPlay)
+      audio.removeEventListener("ended", handleEnded)
+      events.forEach((event) => {
+        document.removeEventListener(event, handleUserInteraction)
+      })
+    }
+  }, [])
+
   return (
     <div className="min-h-screen bg-background font-sans overflow-x-hidden">
       {/* Background Audio */}
-      <audio autoPlay loop>
-        <source src="/Koshun_Nakao_-_Near_My_Heart_(mp3.pm).mp3" type="audio/mpeg" />
-        Your browser does not support the audio element.
-      </audio>
+      <audio 
+        ref={audioRef} 
+        src="/Koshun_Nakao_-_Near_My_Heart_(mp3.pm).mp3" 
+        loop 
+        autoPlay
+        preload="auto"
+      ></audio>
 
       {/* Floating Hearts Animation Background */}
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -133,7 +214,7 @@ export function AnniversaryScrapbook() {
           </TimelineCard>
 
           {/* Card 4: First Date Spot */}
-          <TimelineCard title="Our First real 'Date'" side="right" icon={<MapPin className="w-6 h-6" />}>
+          <TimelineCard title="Our First 'Date'" side="right" icon={<MapPin className="w-6 h-6" />}>
             <div className="space-y-4">
               <div className="aspect-video rounded-xl overflow-hidden bg-muted border-2 border-primary/20">
                 <img src="20250903_112125_Original.jpg" alt="First Date Spot" className="w-full h-full object-cover" />
@@ -176,7 +257,7 @@ export function AnniversaryScrapbook() {
               <img src="WhatsApp Image 2025-12-25 at 00.28.54 (1).jpeg" alt="First Date Spot" className="w-full h-full object-cover" />
 
               <p className="text-sm leading-relaxed">
-normally babe u know me, its not hard for me to 'tear up' but the day you sent me this text, i knew that omo, i cant play with this. i remember saying the text made my whole year and i cant lie, i go back to it to just breathe in and breathe out, to let go and know that one delta girl likes me for me, i dont know why i like it so much but it mean quite alot to me. i and definately not tearing up to this btw❤️              </p>
+normally babe u know me, its not hard for me to 'tear up' but the day you sent me this text, i knew that omo, i cant play with this. i remember saying the text made my whole year and i cant lie, i go back to it to just breathe in and breathe out, to let go and know that one delta girl likes me for me, i dont know why i like it so much but it mean quite alot to me. i am definately not tearing up to this btw❤️              </p>
             <div>
               </div>
             </div>
@@ -266,7 +347,7 @@ princess i dont have anything to say asides thank you to God for life and for yo
           <Heart className="w-12 h-12 mx-auto animate-pulse" fill="currentColor" />
           <h4 className="text-4xl font-black italic">To becoming the best for us. many more to come, amen.</h4>
           <p className="text-2xl font-bold opacity-80 underline decoration-primary underline-offset-8">
-            I love you babe❤️
+            I love you so much babe.
           </p>
           {/* <div className="pt-10 flex justify-center gap-6">
             <Instagram className="w-6 h-6 cursor-pointer hover:text-primary transition-colors" />
@@ -313,12 +394,19 @@ function TimelineCard({
 
 function FloatingHeart({ delay }: { delay: number }) {
   const [position, setPosition] = useState({ x: 0, y: 0 })
+  const [size, setSize] = useState(48)
+  const [xOffset, setXOffset] = useState(0)
+  const [duration, setDuration] = useState(15)
 
   useEffect(() => {
+    // Only set random values on client side to avoid hydration mismatch
     setPosition({
       x: Math.random() * 100,
       y: Math.random() * 100,
     })
+    setSize(48 + Math.random() * 40)
+    setXOffset(Math.random() * 10 - 5)
+    setDuration(15 + Math.random() * 10)
   }, [])
 
   return (
@@ -328,16 +416,16 @@ function FloatingHeart({ delay }: { delay: number }) {
       animate={{
         y: "-10vh",
         opacity: [0, 1, 0],
-        x: [`${position.x}vw`, `${position.x + (Math.random() * 10 - 5)}vw`],
+        x: [`${position.x}vw`, `${position.x + xOffset}vw`],
       }}
       transition={{
-        duration: 15 + Math.random() * 10,
+        duration,
         repeat: Number.POSITIVE_INFINITY,
         delay,
         ease: "linear",
       }}
     >
-      <Heart size={48 + Math.random() * 40} fill="currentColor" />
+      <Heart size={size} fill="currentColor" />
     </motion.div>
   )
 }
