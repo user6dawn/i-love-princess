@@ -35,6 +35,12 @@ export function AnniversaryScrapbook() {
 
   return (
     <div className="min-h-screen bg-background font-sans overflow-x-hidden">
+      {/* Background Audio */}
+      <audio autoPlay loop>
+        <source src="/Koshun_Nakao_-_Near_My_Heart_(mp3.pm).mp3" type="audio/mpeg" />
+        Your browser does not support the audio element.
+      </audio>
+
       {/* Floating Hearts Animation Background */}
       <div className="fixed inset-0 pointer-events-none z-0">
         {[...Array(15)].map((_, i) => (
@@ -127,7 +133,7 @@ export function AnniversaryScrapbook() {
           </TimelineCard>
 
           {/* Card 4: First Date Spot */}
-          <TimelineCard title="Our First 'Date'" side="right" icon={<MapPin className="w-6 h-6" />}>
+          <TimelineCard title="Our First real 'Date'" side="right" icon={<MapPin className="w-6 h-6" />}>
             <div className="space-y-4">
               <div className="aspect-video rounded-xl overflow-hidden bg-muted border-2 border-primary/20">
                 <img src="20250903_112125_Original.jpg" alt="First Date Spot" className="w-full h-full object-cover" />
@@ -260,7 +266,7 @@ princess i dont have anything to say asides thank you to God for life and for yo
           <Heart className="w-12 h-12 mx-auto animate-pulse" fill="currentColor" />
           <h4 className="text-4xl font-black italic">To becoming the best for us. many more to come, amen.</h4>
           <p className="text-2xl font-bold opacity-80 underline decoration-primary underline-offset-8">
-            I love you so much babe.
+            I love you babe❤️
           </p>
           {/* <div className="pt-10 flex justify-center gap-6">
             <Instagram className="w-6 h-6 cursor-pointer hover:text-primary transition-colors" />
